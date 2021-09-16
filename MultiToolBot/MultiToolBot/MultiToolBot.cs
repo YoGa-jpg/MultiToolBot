@@ -3,10 +3,10 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.EventArgs;
 using DSharpPlus.VoiceNext;
 using MultiToolBot.Commands;
-using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace MultiToolBot
 {
@@ -15,44 +15,19 @@ namespace MultiToolBot
         public DiscordClient Client { get; private set; }
         public CommandsNextExtension Commands { get; private set; }
 
-        //public MultiToolBot()
-        //{
-        //    var config = new DiscordConfiguration
-        //    {
-        //        Token = "ODIzNjYyMTM3NTYwOTI0MTcw.YFkFJA.7UlGh5Axb94mlPrLlN06OK_7B8I",
-        //        TokenType = TokenType.Bot,
-        //        AutoReconnect = true,
-        //        Intents = DiscordIntents.All,
-        //        MinimumLogLevel = Microsoft.Extensions.Logging.LogLevel.Debug
-        //    };
-
-        //    Client = new DiscordClient(config);
-
-        //    Client.Ready += (x, y) => Task.CompletedTask;
-
-
-        //    var commandsConfig = new CommandsNextConfiguration
-        //    {
-        //        StringPrefixes = new string[] { "?", "Великий Си" },
-        //        EnableDms = true,
-        //        EnableMentionPrefix = true,
-        //        DmHelp = true
-        //    };
-
-        //    Commands = Client.UseCommandsNext(commandsConfig);
-
-        //    Commands.RegisterCommands<VoiceCommands>();
-
-        //    Client.ConnectAsync();
-
-        //    Task.Delay(-1);
-        //}
+        public VoiceNextExtension Voice { get; set; }
 
         public async Task RunAsync()
         {
+            var json = "";
+            using (var fs = File.OpenRead("config.json"))
+            using (var sr = new StreamReader(fs, new UTF8Encoding(false)))
+                json = await sr.ReadToEndAsync();
+
+            var configJson = JsonConvert.DeserializeObject<ConfigJson>(json);
             var config = new DiscordConfiguration
             {
-                Token = ,
+                Token = configJson.Token,
                 TokenType = TokenType.Bot,
                 AutoReconnect = true,
                 Intents = DiscordIntents.All,
@@ -60,13 +35,11 @@ namespace MultiToolBot
             };
 
             Client = new DiscordClient(config);
-            Client.UseVoiceNext();
-
-            //Client.Ready += OnClientReady;
+            Voice = Client.UseVoiceNext();
 
             var commandsConfig = new CommandsNextConfiguration
             {
-                StringPrefixes = new string[] { "?", "Великий Си" },
+                StringPrefixes = new []{configJson.CommandPrefix},
                 EnableDms = true,
                 EnableMentionPrefix = true,
                 DmHelp = true

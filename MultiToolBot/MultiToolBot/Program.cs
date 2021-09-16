@@ -1,7 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-
-namespace MultiToolBot
+﻿namespace MultiToolBot
 {
     class Program
     {
