@@ -10,31 +10,31 @@ namespace MultiToolBot.Music
 {
     public class Track
     {
-        private Guid _id = Guid.NewGuid();
-        private YoutubeClient _client;
-        private Video _video;
-        public string Url { get; private set; }
-        public string Title => _video.Title;
-        public string Author => _video.Author.Title;
-        public TimeSpan? Duration => _video.Duration;
+        public Guid id = Guid.NewGuid();
+        public string path;
+        protected YoutubeClient _client;
+        protected Video _video;
+        public string _url;
 
         public Track(string url)
         {
-            Url = url;
+            _url = url;
             _client = new YoutubeClient();
         }
 
-        public async Task<string> DownloadAsync()
-        {
-            _video = await _client.Videos.GetAsync(Url);
+        public Track() { }
 
-            var streamManifest = await _client.Videos.Streams.GetManifestAsync(Url.Split('=')[1]);
+        public async Task<string> DownloadAsync(string directory)
+        {
+            _video = await _client.Videos.GetAsync(_url);
+
+            var streamManifest = await _client.Videos.Streams.GetManifestAsync(_url.Split('=')[1]);
             var streamInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
 
-            var path = $"{_id}.{streamInfo.Container}";
+            var path = $"{directory}/{id}.{streamInfo.Container}";
             await _client.Videos.Streams.DownloadAsync(streamInfo, path);
 
-            return path;
+            return this.path = path;
         } 
     }
 }
