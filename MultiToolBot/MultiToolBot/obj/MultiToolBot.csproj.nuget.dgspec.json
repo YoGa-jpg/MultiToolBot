@@ -55,6 +55,10 @@
               "target": "Package",
               "version": "[4.1.0, )"
             },
+            "DSharpPlus.Lavalink": {
+              "target": "Package",
+              "version": "[4.1.0, )"
+            },
             "DSharpPlus.VoiceNext": {
               "target": "Package",
               "version": "[4.1.0, )"

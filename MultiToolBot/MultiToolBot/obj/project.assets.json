@@ -77,6 +77,18 @@
           "lib/netstandard2.0/DSharpPlus.Interactivity.dll": {}
         }
       },
+      "DSharpPlus.Lavalink/4.1.0": {
+        "type": "package",
+        "dependencies": {
+          "DSharpPlus": "4.1.0"
+        },
+        "compile": {
+          "lib/netstandard2.0/DSharpPlus.Lavalink.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.0/DSharpPlus.Lavalink.dll": {}
+        }
+      },
       "DSharpPlus.VoiceNext/4.1.0": {
         "type": "package",
         "dependencies": {
@@ -1440,6 +1452,20 @@
         "dsharpplus.png",
         "lib/netstandard2.0/DSharpPlus.Interactivity.dll",
         "lib/netstandard2.0/DSharpPlus.Interactivity.xml"
+      ]
+    },
+    "DSharpPlus.Lavalink/4.1.0": {
+      "sha512": "xD53+Y5+Vmy66pttVWD9N7M3io9xo2rwHYvDL2EfOk0u1GAab3nNPB8ALAD4VWcJevSoSWoOBG4rZSfqutCUvg==",
+      "type": "package",
+      "path": "dsharpplus.lavalink/4.1.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "dsharpplus.lavalink.4.1.0.nupkg.sha512",
+        "dsharpplus.lavalink.nuspec",
+        "dsharpplus.png",
+        "lib/netstandard2.0/DSharpPlus.Lavalink.dll",
+        "lib/netstandard2.0/DSharpPlus.Lavalink.xml"
       ]
     },
     "DSharpPlus.VoiceNext/4.1.0": {
@@ -4510,6 +4536,7 @@
       "DSharpPlus >= 4.1.0",
       "DSharpPlus.CommandsNext >= 4.1.0",
       "DSharpPlus.Interactivity >= 4.1.0",
+      "DSharpPlus.Lavalink >= 4.1.0",
       "DSharpPlus.VoiceNext >= 4.1.0",
       "YoutubeExplode >= 6.0.5",
       "YoutubeExplode.Converter >= 2.1.0"
@@ -4567,6 +4594,10 @@
             "version": "[4.1.0, )"
           },
           "DSharpPlus.Interactivity": {
+            "target": "Package",
+            "version": "[4.1.0, )"
+          },
+          "DSharpPlus.Lavalink": {
             "target": "Package",
             "version": "[4.1.0, )"
           },

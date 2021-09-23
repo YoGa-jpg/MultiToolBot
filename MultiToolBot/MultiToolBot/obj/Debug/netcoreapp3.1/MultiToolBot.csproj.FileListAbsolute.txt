@@ -67,3 +67,4 @@ C:\Users\Yoga\Desktop\MultiToolBot\MultiToolBot\MultiToolBot\MultiToolBot\obj\De
 C:\Users\Yoga\Desktop\MultiToolBot\MultiToolBot\MultiToolBot\MultiToolBot\obj\Debug\netcoreapp3.1\MultiToolBot.dll
 C:\Users\Yoga\Desktop\MultiToolBot\MultiToolBot\MultiToolBot\MultiToolBot\obj\Debug\netcoreapp3.1\MultiToolBot.pdb
 C:\Users\Yoga\Desktop\MultiToolBot\MultiToolBot\MultiToolBot\MultiToolBot\obj\Debug\netcoreapp3.1\MultiToolBot.genruntimeconfig.cache
+C:\Users\Yoga\Desktop\MultiToolBot\MultiToolBot\MultiToolBot\MultiToolBot\bin\Debug\netcoreapp3.1\DSharpPlus.Lavalink.dll
