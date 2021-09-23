@@ -18,6 +18,7 @@ namespace MultiToolBot.Commands
         private DiscordChannel ContextChannel { get; set; }
         private LinkedList<LavalinkTrack> QueuedTracks { get; set; }
         private Stack<LavalinkTrack> DequeuedTracks { get; set; }
+        private bool IsActive { get; set; }
 
         [Command("join")]
         public async Task Join(CommandContext ctx, DiscordChannel channel = null)
@@ -48,7 +49,7 @@ namespace MultiToolBot.Commands
             LavalinkVoice.PlaybackFinished += LavalinkVoice_PlaybackFinished;
             LavalinkVoice.PlaybackStarted += LavalinkVoice_PlaybackStarted;
 
-            await ctx.RespondAsync($"Joined {channel.Name}!");
+            await ctx.RespondAsync($"Зашел в {channel.Name}!");
         }
 
         [Command("play"), Description("Добавление в очередь")]
@@ -60,17 +61,19 @@ namespace MultiToolBot.Commands
             this.ContextChannel = ctx.Channel;
 
             var trackLoad = await Lavalink.Rest.GetTracksAsync(uri).ConfigureAwait(false);
-            var track = trackLoad.Tracks.First();
+            //var track = trackLoad.Tracks.First();
 
-            QueuedTracks.AddLast(track);
-            //QueuedTracks.Enqueue(track);
-
-            if (QueuedTracks.Count <= 1 & LavalinkVoice.CurrentState.CurrentTrack == null)
+            //QueuedTracks.AddLast(track);
+            foreach (var track in trackLoad.Tracks)
             {
-                //var dequeuedTrack = QueuedTracks.Dequeue();
+                QueuedTracks.AddLast(track);
+            }
+
+            if (IsActive == false & LavalinkVoice.CurrentState.CurrentTrack == null)
+            {
+                IsActive = true;
                 var dequeuedTrack = QueuedTracks.First();
                 await LavalinkVoice.PlayAsync(dequeuedTrack);
-                //DequeuedTracks.Push(dequeuedTrack);
                 QueuedTracks.RemoveFirst();
             }
         }
@@ -78,7 +81,9 @@ namespace MultiToolBot.Commands
         [Command("shuffle")]
         public async Task ShuffleAsync(CommandContext ctx)
         {
-
+            Random rnd = new Random();
+            QueuedTracks = new LinkedList<LavalinkTrack>(QueuedTracks.OrderBy(q => rnd.Next()));
+            await ctx.RespondAsync("Очередь перемешана");
         }
 
         [Command("skip")]
@@ -94,7 +99,8 @@ namespace MultiToolBot.Commands
         public async Task PreviousAsync(CommandContext ctx)
         {
             QueuedTracks.AddFirst(DequeuedTracks.Pop());
-            await LavalinkVoice.PlayAsync(QueuedTracks.First());
+            QueuedTracks.AddFirst(DequeuedTracks.Pop());
+            await LavalinkVoice.StopAsync();
         }
 
         [Command("queue")]
@@ -110,13 +116,14 @@ namespace MultiToolBot.Commands
 
         private async Task LavalinkVoice_PlaybackFinished(LavalinkGuildConnection sender, TrackFinishEventArgs e)
         {
-            DequeuedTracks.Push(e.Track);
             await LavalinkVoice.PlayAsync(QueuedTracks.First());
-            QueuedTracks.RemoveFirst();
+            //QueuedTracks.RemoveFirst();
         }
 
         private async Task LavalinkVoice_PlaybackStarted(LavalinkGuildConnection sender, TrackStartEventArgs e)
         {
+            DequeuedTracks.Push(e.Track);
+            QueuedTracks.RemoveFirst();
             var track = e.Track;
             await ContextChannel.SendMessageAsync(
                 $"Играет: {Formatter.Bold(Formatter.Sanitize(track.Title))} | {Formatter.Bold(Formatter.Sanitize(track.Author))}.");
