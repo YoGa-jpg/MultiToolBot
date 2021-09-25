@@ -15,7 +15,6 @@ namespace MultiToolBot
     {
         public DiscordClient Client { get; private set; }
         public CommandsNextExtension Commands { get; private set; }
-
         public VoiceNextExtension Voice { get; set; }
         public LavalinkExtension Lavalink { get; set; }
 
