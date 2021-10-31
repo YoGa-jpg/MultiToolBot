@@ -5,8 +5,7 @@ namespace MultiToolBot.Model
 {
     sealed class GuildContext : DbContext
     {
-        public DbSet<DequeuedTrack> Dequeued { get; set; }
-        public DbSet<QueuedTrack> Queued { get; set; }
+        public DbSet<Track> Tracks { get; set; }
         public DbSet<Guild> DiscordGuilds { get; set; }
 
         public GuildContext()
@@ -21,17 +20,13 @@ namespace MultiToolBot.Model
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Guild>()
-                .Property(q => q.Id)
-                .ValueGeneratedNever();
+            //modelBuilder.Entity<Guild>()
+            //    .Property(q => q.Id)
+            //    .ValueGeneratedOnAdd();
 
-            modelBuilder.Entity<DequeuedTrack>()
+            modelBuilder.Entity<Track>()
                 .HasOne(track => track.Guild)
-                .WithMany(guild => guild.Dequeued)
-                .HasForeignKey(track => track.GuildId);
-            modelBuilder.Entity<QueuedTrack>()
-                .HasOne(track => track.Guild)
-                .WithMany(guild => guild.Queued)
+                .WithMany(guild => guild.Tracks)
                 .HasForeignKey(track => track.GuildId);
         }
     }

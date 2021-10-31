@@ -8,13 +8,13 @@ namespace MultiToolBot.Model
         public ulong? Id { get; set; }
         public bool IsActive { get; set; } = false;
         public bool IsJoined { get; set; } = true;
+        public bool IsConfigured { get; set; } = false;
 
         public Guild(ulong? guildId)
         {
             Id = guildId;
         }
         public Guild() { }
-        public ICollection<QueuedTrack> Queued { get; set; }
-        public ICollection<DequeuedTrack> Dequeued { get; set; }
+        public ICollection<Track> Tracks { get; set; }
     }
 }
