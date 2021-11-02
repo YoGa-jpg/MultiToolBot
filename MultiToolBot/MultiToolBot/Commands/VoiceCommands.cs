@@ -19,13 +19,7 @@ namespace MultiToolBot.Commands
         private readonly GuildContext _context = new GuildContext();
         private readonly DbSet<Track> _tracks;
         private readonly DbSet<Guild> _guilds;
-        //private LavalinkNodeConnection Lavalink { get; set; }
-        //private LavalinkGuildConnection LavalinkVoice { get; set; }
-        //private DiscordChannel ContextChannel { get; set; }
-        //private LinkedList<LavalinkTrack> QueuedTracks { get; set; }
-        //private Stack<LavalinkTrack> DequeuedTracks { get; set; }
-        //private bool IsActive { get; set; }
-        //private bool IsJoined { get; set; }
+
         public VoiceCommands()
         {
             _tracks = _context.Tracks;
@@ -83,41 +77,17 @@ namespace MultiToolBot.Commands
         [Command("play"), Description("Добавление в очередь")]
         public async Task PlayAsync(CommandContext ctx, [RemainingText] Uri uri)
         {
-            //if (LavalinkVoice != null && !LavalinkVoice.IsConnected)
-            //{
-            //    await LeaveAsync(ctx);
-            //}
-
-            //if (!IsJoined)
-            //    await Join(ctx);
             if (!_guilds.Any(guild => guild.Id == ctx.Channel.GuildId & guild.IsJoined))
                 await Join(ctx);
             var lavalink = ctx.Client.GetLavalink().ConnectedNodes.Values.First();
             var guild = _guilds.Single(guild => guild.Id == ctx.Channel.GuildId);
-            //if (LavalinkVoice == null)
-            //    return;
 
-            //this.ContextChannel = ctx.Channel;
-
-            //var trackLoad = await Lavalink.Rest.GetTracksAsync(uri).ConfigureAwait(false);
-            //var loaded = lavalinkVoice.Rest.GetTracksAsync(uri).Result;
-            //var track = trackLoad.Tracks.First();
-            //QueuedTracks.AddLast(track);
             foreach (var lavalinkTrack in lavalink.Rest.GetTracksAsync(uri).Result.Tracks)
             {
                 _tracks.Add(new Track(ctx, lavalinkTrack.Uri));
-                //QueuedTracks.AddLast(track);
             }
 
             await _context.SaveChangesAsync();
-
-            //if (IsActive == false & LavalinkVoice.CurrentState.CurrentTrack == null)
-            //{
-            //    IsActive = true;
-            //    var dequeuedTrack = QueuedTracks.First();
-            //    await LavalinkVoice.PlayAsync(dequeuedTrack);
-            //    //QueuedTracks.RemoveFirst();
-            //}
 
             if (guild.IsActive)
                 return;
@@ -153,38 +123,12 @@ namespace MultiToolBot.Commands
         [Command("shuffle")]
         public async Task ShuffleAsync(CommandContext ctx)
         {
-            Random rnd = new Random();
-            //QueuedTracks = new LinkedList<LavalinkTrack>(QueuedTracks.OrderBy(q => rnd.Next()));
-            var tracks = _tracks.Where(track => track.GuildId == ctx.Channel.GuildId);
-            _tracks.RemoveRange(tracks);
-            _tracks.AddRange(tracks.OrderBy(track => rnd.Next()));
-            await _context.SaveChangesAsync();
             await ctx.RespondAsync("Очередь перемешана");
         }
 
         [Command("prev")]
         public async Task PreviousAsync(CommandContext ctx)
         {
-            //QueuedTracks.AddFirst(DequeuedTracks.Pop());
-            //QueuedTracks.AddFirst(DequeuedTracks.Pop());
-            ////await LavalinkVoice.StopAsync();
-            //for (int i = 0; i < 2; i++)
-            //{
-            //    //DequeuedTrack dequeued = _dequeued.Last(track => track.GuildId == ctx.Channel.GuildId);
-            //    try
-            //    {
-            //        //var dequeuedList = _dequeued.ToList();
-            //        ////var queuedList = _queued.Where(track => track.GuildId == ctx.Channel.GuildId);
-            //        //var dequeued = dequeuedList.Last(track => track.GuildId == ctx.Channel.GuildId);
-            //        //_queued.ToList().Insert(0, dequeued);
-            //        //_dequeued.Remove(dequeued);
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        Console.WriteLine($"\n\n\n\n{e.Message}\n\n\n\n");
-            //    }
-            //    _context.SaveChanges();
-            //}
             var track = _tracks.ToList().TakeWhile(trc => !trc.Pointer & trc.GuildId == ctx.Guild.Id).TakeLast(2).First();
             _tracks.First(trc => trc.GuildId == ctx.Guild.Id & trc.Pointer).Pointer = false;
             track.Pointer = true;
@@ -196,14 +140,6 @@ namespace MultiToolBot.Commands
         [Command("queue")]
         public async Task QueueAsync(CommandContext ctx)
         {
-            //var track = ctx.Client.GetLavalink().GetGuildConnection(ctx.Guild).CurrentState.CurrentTrack;
-            //var queue = _queued.Where(track => track.GuildId == ctx.Channel.GuildId).ToArray().Select((x, y) =>
-            //            $"{y + 1} - {Formatter.Bold(Formatter.Sanitize(x.Title))} | {Formatter.Bold(Formatter.Sanitize(x.Author))}")
-            //        .Aggregate((x, y) => x + "\n" + y);
-
-            //var track = LavalinkVoice.CurrentState.CurrentTrack;
-            //var queue = QueuedTracks.ToArray().Select((x, y) =>
-            //        $"{y + 1} - {Formatter.Bold(Formatter.Sanitize(x.Title))} | {Formatter.Bold(Formatter.Sanitize(x.Author))}")
             var lavalinkVoice = ctx.Client.GetLavalink().GetGuildConnection(ctx.Guild);
             var tracks = _tracks.ToList().Where(trc => trc.GuildId == ctx.Guild.Id).SkipWhile(trc => !trc.Pointer);
             StringBuilder message = new StringBuilder(1500);
@@ -227,9 +163,7 @@ namespace MultiToolBot.Commands
                     break;
                 }
             }
-            //    .Aggregate((x, y) => x + "\n" + y);
             await ctx.Channel.SendMessageAsync(message.ToString());
-            //await ctx.RespondAsync($"Сейчас играет: {Formatter.Bold(Formatter.Sanitize(track.Title))} | {Formatter.Bold(Formatter.Sanitize(track.Author))}.\n" + queue);
         }
 
         [Command, Description("Leaves a voice channel.")]
@@ -238,38 +172,28 @@ namespace MultiToolBot.Commands
             var lavalink = ctx.Client.GetLavalink().ConnectedNodes.Values.First();
             var lavalinkVoice = lavalink.GetGuildConnection(ctx.Member.VoiceState.Guild);
             var guild = _guilds.Single(guild => guild.Id == ctx.Channel.GuildId);
-            //if (this.LavalinkVoice == null)
-            //    return;
+
             if (lavalinkVoice.IsConnected)
             {
                 await lavalinkVoice.DisconnectAsync().ConfigureAwait(false);
             }
-            //lavalink = null;
-            //lavalinkVoice = null;
+
             _tracks.RemoveRange(_tracks.Where(track => track.GuildId == ctx.Guild.Id));
-            //_dequeued.RemoveRange(_dequeued.Where(track => track.GuildId == ctx.Channel.GuildId));
             guild.IsActive = false;
             guild.IsJoined = false;
-            //QueuedTracks = null;
-            //DequeuedTracks = null;
-            //IsJoined = false;
-            //IsActive = false;
-            await _context.SaveChangesAsync();
 
+            await _context.SaveChangesAsync();
             await ctx.RespondAsync("До связи").ConfigureAwait(false);
         }
 
         private async Task LavalinkVoice_PlaybackFinished(LavalinkGuildConnection sender, TrackFinishEventArgs e)
         {
-            //if(QueuedTracks.Count < 1)
-            //    return;
             var track = _tracks.ToList().Where(trc => trc.GuildId == sender.Channel.GuildId)
                 .SkipWhile(trc => !trc.Pointer).Skip(1).First();
             track.Pointer = true;
             _tracks.First(trc => trc.GuildId == sender.Guild.Id & trc.Pointer).Pointer = false;
             await _context.SaveChangesAsync();
             await e.Player.PlayAsync(sender.GetTracksAsync(track.Uri).Result.Tracks.First());
-            //await LavalinkVoice.PlayAsync(QueuedTracks.First());
         }
 
         private async Task LavalinkVoice_PlaybackStarted(LavalinkGuildConnection sender, TrackStartEventArgs e)
