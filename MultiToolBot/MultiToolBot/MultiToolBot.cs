@@ -1,4 +1,5 @@
-﻿using DSharpPlus;
+﻿using System.Collections.Generic;
+using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.VoiceNext;
 using MultiToolBot.Commands;
@@ -16,7 +17,7 @@ namespace MultiToolBot
         public DiscordClient Client { get; private set; }
         public CommandsNextExtension Commands { get; private set; }
         public VoiceNextExtension Voice { get; set; }
-        public LavalinkExtension Lavalink { get; set; }
+        public LavalinkExtension  Lavalink { get; set; }
 
         public async Task RunAsync()
         {

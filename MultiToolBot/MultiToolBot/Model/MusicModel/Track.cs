@@ -3,7 +3,7 @@ using DSharpPlus.CommandsNext;
 
 namespace MultiToolBot.Model.MusicModel
 {
-    public class Track
+    public class Track : ICloneable
     {
         public Guid Id { get; set; }
         public string Uri { get; set; }
@@ -21,5 +21,14 @@ namespace MultiToolBot.Model.MusicModel
             Uri = uri.ToString();
         }
         public Track() { }
+        public object Clone()
+        {
+            return new Track()
+            {
+                Uri = this.Uri,
+                GuildId = this.GuildId,
+                Pointer = this.Pointer
+            };
+        }
     }
 }

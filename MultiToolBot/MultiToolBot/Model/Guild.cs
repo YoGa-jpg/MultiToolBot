@@ -16,5 +16,6 @@ namespace MultiToolBot.Model
         }
         public Guild() { }
         public ICollection<Track> Tracks { get; set; }
+        public TextChannel TextChannel { get; set; }
     }
 }

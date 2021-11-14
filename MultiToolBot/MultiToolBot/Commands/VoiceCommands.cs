@@ -8,6 +8,7 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Lavalink;
 using DSharpPlus.Lavalink.EventArgs;
+using Emzi0767;
 using Microsoft.EntityFrameworkCore;
 using MultiToolBot.Model;
 using MultiToolBot.Model.MusicModel;
@@ -26,7 +27,7 @@ namespace MultiToolBot.Commands
             _guilds = _context.DiscordGuilds;
         }
 
-        [Command("join")]
+        [Command]
         public async Task Join(CommandContext ctx, DiscordChannel channel = null)
         {
             channel = ctx.Member.VoiceState.Channel;
@@ -54,10 +55,10 @@ namespace MultiToolBot.Commands
             catch (Exception e)
             {
                 _guilds.Add(new Guild(channel.GuildId));
-                await _context.SaveChangesAsync();
             }
             finally
             {
+                _context.SaveChanges();
                 guild = _guilds.Single(gui => gui.Id == ctx.Guild.Id);
             }
 
@@ -74,13 +75,19 @@ namespace MultiToolBot.Commands
             await ctx.RespondAsync($"Зашел в {channel.Name}!");
         }
 
-        [Command("play"), Description("Добавление в очередь")]
+        [Command, Description("Добавление в очередь")]
         public async Task PlayAsync(CommandContext ctx, [RemainingText] Uri uri)
         {
             if (!_guilds.Any(guild => guild.Id == ctx.Channel.GuildId & guild.IsJoined))
                 await Join(ctx);
+
             var lavalink = ctx.Client.GetLavalink().ConnectedNodes.Values.First();
             var guild = _guilds.Single(guild => guild.Id == ctx.Channel.GuildId);
+
+            if (guild.TextChannel is null)
+                _context.TextChannels.Add(new TextChannel(ctx.Channel.Id, ctx.Guild.Id));
+            else
+                guild.TextChannel.Id = ctx.Channel.Id;
 
             foreach (var lavalinkTrack in lavalink.Rest.GetTracksAsync(uri).Result.Tracks)
             {
@@ -100,7 +107,7 @@ namespace MultiToolBot.Commands
                 .PlayAsync(tracks.Tracks.First());
         }
 
-        [Command("stop")]
+        [Command]
         public async Task StopAsync(CommandContext ctx)
         {
             _tracks.RemoveRange(_tracks.Where(track => track.GuildId == ctx.Channel.GuildId));
@@ -108,8 +115,19 @@ namespace MultiToolBot.Commands
             await _context.SaveChangesAsync();
             await SkipAsync(ctx);
         }
+        [Command]
+        public async Task PauseAsync(CommandContext ctx)
+        {
+            await ctx.Client.GetLavalink().GetGuildConnection(ctx.Guild).PauseAsync();
+        }
 
-        [Command("skip")]
+        [Command]
+        public async Task ResumeAsync(CommandContext ctx)
+        {
+            await ctx.Client.GetLavalink().GetGuildConnection(ctx.Guild).ResumeAsync();
+        }
+
+        [Command]
         public async Task SkipAsync(CommandContext ctx)
         {
             var lavalinkVoice = ctx.Client.GetLavalink().ConnectedNodes.Values.First()
@@ -120,14 +138,35 @@ namespace MultiToolBot.Commands
             await lavalinkVoice.StopAsync();
         }
 
-        [Command("shuffle")]
+        [Command]
         public async Task ShuffleAsync(CommandContext ctx)
         {
+            var guild = _guilds.Single(gld => gld.Id == ctx.Guild.Id);
+            var tracks = _tracks.ToList().SkipWhile(tra => !tra.Pointer).Skip(1).Where(tra => tra.GuildId == guild.Id);
+
+            try
+            {
+                var enumerable = tracks as Track[] ?? tracks.ToArray();
+                _tracks.RemoveRange(enumerable);
+                _context.SaveChanges();
+
+                enumerable = enumerable.OrderBy(tra => new SecureRandom().Next()).ToArray();
+                foreach (var track in enumerable)
+                {
+                    _tracks.Add((Track)track.Clone());
+                }
+                _context.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
             await ctx.RespondAsync("Очередь перемешана");
         }
 
-        [Command("prev")]
-        public async Task PreviousAsync(CommandContext ctx)
+        [Command]
+        public async Task PrevAsync(CommandContext ctx)
         {
             var track = _tracks.ToList().TakeWhile(trc => !trc.Pointer & trc.GuildId == ctx.Guild.Id).TakeLast(2).First();
             _tracks.First(trc => trc.GuildId == ctx.Guild.Id & trc.Pointer).Pointer = false;
@@ -137,7 +176,7 @@ namespace MultiToolBot.Commands
             await ctx.Client.GetLavalink().GetGuildConnection(ctx.Guild).StopAsync();
         }
 
-        [Command("queue")]
+        [Command]
         public async Task QueueAsync(CommandContext ctx)
         {
             var lavalinkVoice = ctx.Client.GetLavalink().GetGuildConnection(ctx.Guild);
@@ -145,23 +184,16 @@ namespace MultiToolBot.Commands
             StringBuilder message = new StringBuilder(1500);
             foreach (var track in tracks)
             {
-                try
-                {
-                    var trackInfo = lavalinkVoice.GetTracksAsync(track.Uri).Result.Tracks.First();
-                    if (track.Pointer)
-                        message.AppendLine(
-                            $"Сейчас играет: {Formatter.Bold(Formatter.Sanitize(trackInfo.Title))} | {Formatter.Bold(Formatter.Sanitize(trackInfo.Author))}");
-                    else
-                        message.AppendLine(
-                            $"- {Formatter.Bold(Formatter.Sanitize(trackInfo.Title))} | {Formatter.Bold(Formatter.Sanitize(trackInfo.Author))}");
-                    if (message.Length > 1500)
-                        break;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.Message);
+                var trackList = lavalinkVoice.GetTracksAsync(track.Uri).Result.Tracks;
+                if (trackList == null | message.Length > 1500)
                     break;
-                }
+                var trackInfo = trackList.First();
+                if (track.Pointer)
+                    message.AppendLine(
+                        $"Сейчас играет: {Formatter.Bold(Formatter.Sanitize(trackInfo.Title))} | {Formatter.Bold(Formatter.Sanitize(trackInfo.Author))}");
+                else
+                    message.AppendLine(
+                        $"- {Formatter.Bold(Formatter.Sanitize(trackInfo.Title))} | {Formatter.Bold(Formatter.Sanitize(trackInfo.Author))}");
             }
             await ctx.Channel.SendMessageAsync(message.ToString());
         }
@@ -198,8 +230,9 @@ namespace MultiToolBot.Commands
 
         private async Task LavalinkVoice_PlaybackStarted(LavalinkGuildConnection sender, TrackStartEventArgs e)
         {
-            //await sender.Channel.SendMessageAsync(
-            //    $"Играет: {Formatter.Bold(Formatter.Sanitize(e.Track.Title))} | {Formatter.Bold(Formatter.Sanitize(e.Track.Author))}.");
+            var channel = sender.Guild.GetChannel(_guilds.Single(guild => guild.Id == sender.Guild.Id).TextChannel.Id);
+            await channel.SendMessageAsync(
+                $"Играет: {Formatter.Bold(Formatter.Sanitize(e.Track.Title))} | {Formatter.Bold(Formatter.Sanitize(e.Track.Author))}.");
         }
     }
 }
