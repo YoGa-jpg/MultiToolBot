@@ -30,7 +30,7 @@ namespace MultiToolBot
             var endpoint = new ConnectionEndpoint
             {
                 Hostname = "127.0.0.1",
-                Port = 2333
+                Port = 49163
             };
 
             var botConfig = new DiscordConfiguration

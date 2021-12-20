@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -33,6 +34,8 @@ namespace MultiToolBot.Commands
             channel = ctx.Member.VoiceState.Channel;
             var lava = ctx.Client.GetLavalink();
             var lavalink = lava.ConnectedNodes.Values.First(); // Lavalink
+            var connection = lavalink.GetGuildConnection(channel.Guild) is null;
+
 
             if (!lava.ConnectedNodes.Any())
             {
@@ -46,7 +49,6 @@ namespace MultiToolBot.Commands
             }
 
             await lavalink.ConnectAsync(channel);
-            //var lavalinkVoice = lavalink.GetGuildConnection(ctx.Member.VoiceState.Guild); //LavalinkVoice
             Guild guild = new Guild();
             try
             {
@@ -55,46 +57,74 @@ namespace MultiToolBot.Commands
             catch (Exception e)
             {
                 _guilds.Add(new Guild(channel.GuildId));
+                await _context.SaveChangesAsync();
             }
             finally
             {
-                _context.SaveChanges();
                 guild = _guilds.Single(gui => gui.Id == ctx.Guild.Id);
             }
 
-            if(!guild.IsConfigured)
+            if (guild.IsJoined & connection)
             {
-                lavalink.PlaybackStarted += LavalinkVoice_PlaybackStarted;
-                lavalink.PlaybackFinished += LavalinkVoice_PlaybackFinished;
-                guild.IsConfigured = true;
+                await StopAsync(ctx);
             }
 
+            //if (!guild.IsConfigured)
+            //{
+            //    lavalink.PlaybackStarted += LavalinkVoice_PlaybackStarted;
+            //    lavalink.PlaybackFinished += LavalinkVoice_PlaybackFinished;
+            //    guild.IsConfigured = true;
+            //}
+
+            lavalink.PlaybackStarted -= LavalinkVoice_PlaybackStarted;
+            lavalink.PlaybackFinished -= LavalinkVoice_PlaybackFinished;
+            lavalink.PlaybackStarted += LavalinkVoice_PlaybackStarted;
+            lavalink.PlaybackFinished += LavalinkVoice_PlaybackFinished;
+
+            guild.IsConfigured = true;
             guild.IsJoined = true;
             await _context.SaveChangesAsync();
 
             await ctx.RespondAsync($"Зашел в {channel.Name}!");
         }
 
-        [Command, Description("Добавление в очередь")]
+        [Command, DSharpPlus.CommandsNext.Attributes.Description("Добавление в очередь")]
         public async Task PlayAsync(CommandContext ctx, [RemainingText] Uri uri)
         {
-            if (!_guilds.Any(guild => guild.Id == ctx.Channel.GuildId & guild.IsJoined))
+            if (!(_guilds.Any(guild => guild.Id == ctx.Channel.GuildId) &
+                  ctx.Client.GetLavalink().GetGuildConnection(ctx.Guild) != null))
                 await Join(ctx);
 
             var lavalink = ctx.Client.GetLavalink().ConnectedNodes.Values.First();
-            var guild = _guilds.Single(guild => guild.Id == ctx.Channel.GuildId);
+            var guild = _guilds.Include(gui => gui.TextChannel).Single(guild => guild.Id == ctx.Channel.GuildId);
 
             if (guild.TextChannel is null)
+            {
                 _context.TextChannels.Add(new TextChannel(ctx.Channel.Id, ctx.Guild.Id));
+            }
             else
-                guild.TextChannel.Id = ctx.Channel.Id;
+            {
+                if (guild.TextChannel.Id != ctx.Channel.Id)
+                {
+                    guild.TextChannel.Id = ctx.Channel.Id;
+
+                }
+            }
 
             foreach (var lavalinkTrack in lavalink.Rest.GetTracksAsync(uri).Result.Tracks)
             {
                 _tracks.Add(new Track(ctx, lavalinkTrack.Uri));
             }
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                if(_context.ChangeTracker.HasChanges())
+                    _context.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
 
             if (guild.IsActive)
                 return;
@@ -198,7 +228,7 @@ namespace MultiToolBot.Commands
             await ctx.Channel.SendMessageAsync(message.ToString());
         }
 
-        [Command, Description("Leaves a voice channel.")]
+        [Command, DSharpPlus.CommandsNext.Attributes.Description("Leaves a voice channel.")]
         public async Task LeaveAsync(CommandContext ctx)
         {
             var lavalink = ctx.Client.GetLavalink().ConnectedNodes.Values.First();
@@ -230,7 +260,7 @@ namespace MultiToolBot.Commands
 
         private async Task LavalinkVoice_PlaybackStarted(LavalinkGuildConnection sender, TrackStartEventArgs e)
         {
-            var channel = sender.Guild.GetChannel(_guilds.Single(guild => guild.Id == sender.Guild.Id).TextChannel.Id);
+            var channel = sender.Guild.GetChannel(_guilds.Include(guild => guild.TextChannel).Single(guild => guild.Id == sender.Guild.Id).TextChannel.Id);
             await channel.SendMessageAsync(
                 $"Играет: {Formatter.Bold(Formatter.Sanitize(e.Track.Title))} | {Formatter.Bold(Formatter.Sanitize(e.Track.Author))}.");
         }

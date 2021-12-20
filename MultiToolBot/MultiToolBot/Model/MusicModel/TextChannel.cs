@@ -15,5 +15,7 @@ namespace MultiToolBot.Model.MusicModel
             Id = id;
             GuildId = guildId;
         }
+
+        public TextChannel() { }
     }
 }
