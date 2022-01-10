@@ -14,10 +14,10 @@ namespace MultiToolBot
 {
     class MultiToolBot
     {
-        public DiscordClient Client { get; private set; }
-        public CommandsNextExtension Commands { get; private set; }
+        public DiscordShardedClient Client { get; private set; }
+        public IReadOnlyDictionary<int, CommandsNextExtension> Commands { get; private set; }
         public VoiceNextExtension Voice { get; set; }
-        public LavalinkExtension  Lavalink { get; set; }
+        public IReadOnlyDictionary<int, LavalinkExtension> Lavalink { get; set; }
 
         public async Task RunAsync()
         {
@@ -30,7 +30,7 @@ namespace MultiToolBot
             var endpoint = new ConnectionEndpoint
             {
                 Hostname = "127.0.0.1",
-                Port = 49163
+                Port = 2333//49163
             };
 
             var botConfig = new DiscordConfiguration
@@ -38,7 +38,7 @@ namespace MultiToolBot
                 Token = configJson.Token,
                 TokenType = TokenType.Bot,
                 AutoReconnect = true,
-                Intents = DiscordIntents.All,
+                Intents = DiscordIntents.AllUnprivileged,
                 MinimumLogLevel = Microsoft.Extensions.Logging.LogLevel.Debug
             };
             var commandsConfig = new CommandsNextConfiguration
@@ -55,15 +55,21 @@ namespace MultiToolBot
                 SocketEndpoint = endpoint
             };
 
-            Client = new DiscordClient(botConfig);
-            Voice = Client.UseVoiceNext();
-            Lavalink = Client.UseLavalink();
-            Commands = Client.UseCommandsNext(commandsConfig);
+            Client = new DiscordShardedClient(botConfig);
+            Lavalink = await Client.UseLavalinkAsync();
+            Commands = await Client.UseCommandsNextAsync(commandsConfig);
+            //Client = new DiscordClient(botConfig);
+            //Voice = Client.UseVoiceNext();
+            //Lavalink = Client.UseLavalink();
+            //Commands = Client.UseCommandsNext(commandsConfig);
 
             Commands.RegisterCommands<VoiceCommands>();
 
-            await Client.ConnectAsync();
-            await Lavalink.ConnectAsync(lavalinkConfig);
+            await Client.StartAsync();
+            foreach (var v in Lavalink.Values)
+            {
+                await v.ConnectAsync(lavalinkConfig);
+            }
 
             await Task.Delay(-1);
         }
