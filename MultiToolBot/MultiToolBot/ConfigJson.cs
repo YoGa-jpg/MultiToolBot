@@ -15,5 +15,8 @@ namespace MultiToolBot
 
         [JsonProperty("port")]
         public int Port { get; set; }
+
+        [JsonProperty("pass")]
+        public string Password { get; set; }
     }
 }

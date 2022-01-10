@@ -50,7 +50,7 @@ namespace MultiToolBot
             };
             var lavalinkConfig = new LavalinkConfiguration
             {
-                Password = "youshallnotpass",
+                Password = configJson.Password,
                 RestEndpoint = endpoint,
                 SocketEndpoint = endpoint
             };
