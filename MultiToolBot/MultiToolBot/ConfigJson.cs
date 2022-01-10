@@ -9,5 +9,11 @@ namespace MultiToolBot
 
         [JsonProperty("prefix")]
         public string CommandPrefix { get; private set; }
+
+        [JsonProperty("host")]
+        public string Hostname { get; private set; }
+
+        [JsonProperty("port")]
+        public int Port { get; set; }
     }
 }
