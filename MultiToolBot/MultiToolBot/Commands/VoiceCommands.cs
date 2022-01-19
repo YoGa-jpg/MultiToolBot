@@ -18,6 +18,9 @@ using Microsoft.EntityFrameworkCore;
 using MultiToolBot.Model;
 using MultiToolBot.Model.MusicModel;
 using MultiToolBot;
+using YoutubeExplode;
+using YoutubeExplode.Common;
+using YoutubeExplode.Search;
 
 namespace MultiToolBot.Commands
 {
@@ -72,20 +75,31 @@ namespace MultiToolBot.Commands
         }
 
         [Command]
-        public async Task PlayAsync(CommandContext ctx, [RemainingText] Uri uri)
+        public async Task PlayAsync(CommandContext ctx, [RemainingText] string uri)
         {
             await Join(ctx);
 
             _lavalink = ctx.Client.GetLavalink();
             _lavalinkNode = _lavalink.ConnectedNodes.Values.First();
 
-            var search = await _lavalinkNode.Rest.GetTracksAsync(uri);
+            LavalinkLoadResult search;
+
+            if (!uri.Contains("https"))
+            {
+                uri = await GetUri(uri);
+            }
+
+            if (uri.Contains("soundcloud"))
+                search = await _lavalinkNode.Rest.GetTracksAsync(uri, LavalinkSearchType.SoundCloud);
+            else
+                search = await _lavalinkNode.Rest.GetTracksAsync(uri);
+
             foreach (var lavalinkTrack in search.Tracks)
             {
                 _queue.AddLast(lavalinkTrack);
             }
-            
-            if(_lavalinkNode.GetGuildConnection(ctx.Guild).CurrentState.CurrentTrack is null)
+
+            if (_lavalinkNode.GetGuildConnection(ctx.Guild).CurrentState.CurrentTrack is null)
             {
                 _track = _queue.First;
                 await _lavalinkNode.GetGuildConnection(ctx.Guild)
@@ -192,13 +206,29 @@ namespace MultiToolBot.Commands
         private async Task LavalinkVoice_PlaybackFinished(LavalinkGuildConnection sender, TrackFinishEventArgs e)
         {
             _track = _track.Next;
-            await _lavalinkNode.ConnectedGuilds.First().Value.PlayAsync(_track.Value);
+            if (_track != null)
+                await _lavalinkNode.ConnectedGuilds.First().Value.PlayAsync(_track.Value);
+            else
+                _queue.Clear();
         }
 
         private async Task LavalinkVoice_PlaybackStarted(LavalinkGuildConnection sender, TrackStartEventArgs e)
         {
             await _channel.SendMessageAsync(
                 $"Играет: {Formatter.Bold(Formatter.Sanitize(e.Track.Title))} | {Formatter.Bold(Formatter.Sanitize(e.Track.Author))}.");
+        }
+
+        private async Task<string> GetUri(string title)
+        {
+            var youtube = new YoutubeClient();
+            await foreach (var batch in youtube.Search.GetResultBatchesAsync(title))
+            {
+                foreach (var result in batch.Items)
+                {
+                    return result.Url;
+                }
+            }
+            return string.Empty;
         }
     }
 }
