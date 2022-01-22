@@ -35,6 +35,7 @@ namespace MultiToolBot.Commands
         private DiscordChannel _channel;
         private LavalinkExtension _lavalink;
         private LavalinkNodeConnection _lavalinkNode;
+        private bool EventSetted;
 
         public VoiceCommands()
         {
@@ -68,8 +69,12 @@ namespace MultiToolBot.Commands
 
             await _lavalinkNode.ConnectAsync(channel);
 
-            _lavalinkNode.PlaybackStarted += LavalinkVoice_PlaybackStarted;
-            _lavalinkNode.PlaybackFinished += LavalinkVoice_PlaybackFinished;
+            if(!EventSetted)
+            {
+                EventSetted = true;
+                _lavalinkNode.PlaybackStarted += LavalinkVoice_PlaybackStarted;
+                _lavalinkNode.PlaybackFinished += LavalinkVoice_PlaybackFinished;
+            }
 
             await ctx.RespondAsync($"Зашел в {channel.Name}!");
         }
@@ -207,9 +212,14 @@ namespace MultiToolBot.Commands
         {
             _track = _track.Next;
             if (_track != null)
+            {
                 await _lavalinkNode.ConnectedGuilds.First().Value.PlayAsync(_track.Value);
+            }
             else
+            {
                 _queue.Clear();
+                await _lavalinkNode.Discord.DisconnectAsync();
+            }
         }
 
         private async Task LavalinkVoice_PlaybackStarted(LavalinkGuildConnection sender, TrackStartEventArgs e)
