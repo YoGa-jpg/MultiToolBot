@@ -1,4 +1,0 @@
-*.json
-/Migrations/*
-/obj/*
-/bin/*
